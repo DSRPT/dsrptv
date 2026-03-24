@@ -9,7 +9,6 @@ const readline = require('readline');
 const BRAND = 'DSRPTV | dsrptv.co';
 const BRAND_FULL = 'DSRPTV — META MULTI-AGENT CODING OS';
 const OLLAMA_DEFAULT = 'http://localhost:11434';
-const CONFIG_KEY = 'DSRPTV_CONFIG';
 
 const chalk = {
   cyan: (s) => `\x1b[36m${s}\x1b[0m`,
@@ -29,7 +28,7 @@ function banner() {
   console.log(chalk.gray('  Aider + LangGraph + Ollama + Voice + Browser UI'));
   console.log(chalk.gray('  Supervisor + Coder + Tester + Persistent Checkpointing'));
   console.log(chalk.cyan('================================================================'));
-  console.log(chalk.gray(`  dsrptv.co  |  META MULTI-AGENT CODING OS`));
+  console.log(chalk.gray(`  dsrptv.co | META MULTI-AGENT CODING OS`));
   console.log(chalk.gray(`  by DSRPT.AI — https://dsrpt.ai`));
   console.log(chalk.gray(`  GitHub: https://github.com/DSRPT/dsrptv`));
   console.log(chalk.cyan('================================================================\n'));
@@ -83,7 +82,14 @@ async function main() {
   // === FETCH MODELS ===
   console.log(chalk.gray(`\nFetching models from ${ollamaHost}...`));
   let models = await fetchModels(ollamaHost);
-  const fallback = ['qwen2.5-coder:32b','qwen3-coder:30b','devstral:24b','deepseek-coder-v2','qwen2.5-coder:14b','qwen2.5-coder:7b'];
+  const fallback = [
+    'qwen2.5-coder:32b',
+    'qwen3-coder:30b',
+    'devstral:24b',
+    'deepseek-coder-v2',
+    'qwen2.5-coder:14b',
+    'qwen2.5-coder:7b'
+  ];
   if (!models.length) {
     console.log(chalk.yellow('  Could not fetch models — using recommended coding list'));
     models = fallback;
@@ -109,86 +115,81 @@ async function main() {
   // === AGENT MODE ===
   console.log(chalk.cyan('\n[ Agent Mode ]'));
   const modes = [
-    '1. Meta Multi-Agent  — LangGraph: Supervisor + Coder + Tester (durable)',
-    '2. Native Agent      — aider-desk autonomous mode',
-    '3. Architect         — Two-model plan + execute (default)',
-    '4. Voice-to-Code     — Whisper input first',
-    '5. Browser Web UI    — Aider in browser (default enabled)',
-    '6. Code Mode         — Fast single-model',
-    '7. Ask Mode          — Questions only',
+    '1. Meta Multi-Agent — LangGraph: Supervisor + Coder + Tester (durable)',
+    '2. Native Agent — aider autonomous mode with --yes --map',
+    '3. Architect — Two-model plan + execute (default)',
+    '4. Voice-to-Code — Whisper input enabled',
+    '5. Browser Web UI — Aider in browser',
+    '6. Code Mode — Fast single-model editing',
+    '7. Ask Mode — Questions only',
   ];
   const modeChoice = await selectFromList('Select agent mode', modes, 2);
   const modeIdx = parseInt(modeChoice[0]);
 
   // === EXTRAS ===
   console.log(chalk.cyan('\n[ Extras ]'));
-  const enableBrowser = await ask('Enable Browser Web UI? [Y/n]: ');
   const enableVoice = await ask('Enable Voice Input (local Whisper)? [y/N]: ');
   const enableMemory = await ask('Enable Persistent Memory Bank? [Y/n]: ');
-  const enableAutoTest = await ask('Enable Auto-Test + Lint loops? [y/N]: ');
+  const enableAutoTest = await ask('Enable Auto-Test loops? [y/N]: ');
+  const enableLint = await ask('Enable Auto-Lint? [y/N]: ');
   const webUrls = await ask('Add web URLs/docs (comma-separated, or blank): ');
 
   rl.close();
 
   // === BUILD COMMAND ===
   const env = { ...process.env, OLLAMA_API_BASE: ollamaHost, DSRPTV_HOST: ollamaHost };
-
-  let modeFlags = '';
-  let useLangGraph = false;
-  let useAiderDesk = false;
-
-  switch (modeIdx) {
-    case 1: useLangGraph = true; break;
-    case 2: useAiderDesk = true; break;
-    case 3: modeFlags = '--architect --auto-accept-architect'; break;
-    case 4: modeFlags = '--architect --voice'; break;
-    case 5: modeFlags = '--architect'; break;
-    case 6: modeFlags = ''; break;
-    case 7: modeFlags = '--ask'; break;
-    default: modeFlags = '--architect --auto-accept-architect';
-  }
-
-  const browser = enableBrowser.toLowerCase() !== 'n';
-  const voice = enableVoice.toLowerCase() === 'y';
-  const memory = enableMemory.toLowerCase() !== 'n';
-  const autoTest = enableAutoTest.toLowerCase() === 'y';
-
+  
   console.log(chalk.cyan('\n================================================================'));
   console.log(chalk.bold(chalk.green(`  Launching DSRPTV with ${primary} @ ${ollamaHost}`)));
   console.log(chalk.gray(`  Editor: ${editor} | Mode: ${modeChoice.slice(3).trim()}`));
   console.log(chalk.cyan('================================================================\n'));
 
-  if (useLangGraph) {
-    // Launch LangGraph meta-agent core
+  // === LANGGRAPH META-AGENT MODE ===
+  if (modeIdx === 1) {
     const proc = spawn('python', ['graph.py'], { stdio: 'inherit', env });
     proc.on('exit', code => process.exit(code || 0));
     return;
   }
 
-  // Build aider command
-  process.env.OLLAMA_API_BASE = ollamaHost;
+  // === BUILD AIDER COMMAND ===
   let cmd = `aider --model ollama/${primary} --editor-model ollama/${editor}`;
-
-  if (agentMode === 'architect') cmd += ' --architect --auto-accept-architect';
-  else if (agentMode === 'agent') cmd += ' --architect --yes --map';
-  else if (agentMode === 'ask')    cmd += ' --ask';
-  else if (agentMode === 'voice') cmd += ' --architect --voice';
-  else if (agentMode === 'browser') cmd += ' --architect';
-
-  if (extras.includes('vision'))    cmd += ' --voice'; // voice flag enables image handling
-  if (extras.includes('autotest')) cmd += ` --test-cmd 'pytest'`;
-  if (extras.includes('autolint')) cmd += ` --lint-cmd 'ruff'`;
-  if (extras.includes('memory'))   cmd += ' --message-history .dsrptv-memory.json';
-  if (extras.includes('autoacc')) cmd += ' --auto-accept-architect';
-  cmd += ' --yes --stream --map';
-
-  if (webUrls.trim()) {
-    webUrls.split(',').map(u => u.trim()).filter(Boolean).forEach(u => { cmd += ` --add ${u}`; });
+  
+  // Mode flags
+  if (modeIdx === 2) {
+    cmd += ' --yes --map'; // Native agent
+  } else if (modeIdx === 3) {
+    cmd += ' --architect --auto-accept-architect'; // Architect (default)
+  } else if (modeIdx === 4) {
+    cmd += ' --architect --voice'; // Voice
+  } else if (modeIdx === 5) {
+    cmd += ' --architect'; // Browser UI
+  } else if (modeIdx === 6) {
+    cmd += ''; // Code mode (fast)
+  } else if (modeIdx === 7) {
+    cmd += ' --ask'; // Ask mode
+  } else {
+    cmd += ' --architect --auto-accept-architect'; // Default fallback
   }
 
+  // Additional flags
+  if (enableVoice.toLowerCase() === 'y') cmd += ' --voice';
+  if (enableMemory.toLowerCase() !== 'n') cmd += ' --message-history .dsrptv-memory.json';
+  if (enableAutoTest.toLowerCase() === 'y') cmd += " --test-cmd 'pytest || npm test'";
+  if (enableLint.toLowerCase() === 'y') cmd += " --lint-cmd 'ruff || eslint'";
+  
+  cmd += ' --yes --stream --map';
+
+  // Add web URLs
+  if (webUrls.trim()) {
+    webUrls.split(',').map(u => u.trim()).filter(Boolean).forEach(u => {
+      cmd += ` --read ${u}`;
+    });
+  }
+
+  // System message
   cmd += ` --message "You are DSRPTV — built by DSRPT.AI (https://dsrpt.ai). An elite meta multi-agent coding partner. Be precise, proactive, and use best practices."`;
 
-  const proc = spawn(cmd, { shell: true, stdio: 'inherit' });
+  const proc = spawn(cmd, { shell: true, stdio: 'inherit', env });
   proc.on('exit', code => process.exit(code || 0));
 }
 
