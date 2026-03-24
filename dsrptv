@@ -1,0 +1,93 @@
+#!/usr/bin/env node
+// =======================================================================
+// DSRPTV (dsrptv.co) — Meta Multi-Agent Coding OS
+// by DSRPT.AI — https://dsrpt.ai
+// GitHub: https://github.com/DSRPT/dsrptv
+// =======================================================================
+// dsrptv — Global CLI executable
+// Standalone usage, no Pinokio required
+// =======================================================================
+
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+
+const SCRIPT_DIR = __dirname;
+
+// ASCII Banner
+function banner() {
+  console.log('\n\x1b[36m================================================================\x1b[0m');
+  console.log('\x1b[1;36m  DSRPTV | dsrptv.co — META MULTI-AGENT CODING OS\x1b[0m');
+  console.log('\x1b[90m  by DSRPT.AI — https://dsrpt.ai\x1b[0m');
+  console.log('\x1b[90m  GitHub: https://github.com/DSRPT/dsrptv\x1b[0m');
+  console.log('\x1b[36m================================================================\x1b[0m\n');
+}
+
+// Help text
+function showHelp() {
+  banner();
+  console.log('\x1b[1mUsage:\x1b[0m');
+  console.log('  dsrptv [command] [options]\n');
+  console.log('\x1b[1mCommands:\x1b[0m');
+  console.log('  \x1b[32mmenu\x1b[0m         Interactive launcher (Ollama picker, mode selection)');
+  console.log('  \x1b[32mgraph\x1b[0m        LangGraph meta-agent (Supervisor → Coder → Tester)');
+  console.log('  \x1b[32mlaunch\x1b[0m       Direct Aider Architect mode');
+  console.log('  \x1b[32mhelp\x1b[0m         Show this help message\n');
+  console.log('\x1b[1mExamples:\x1b[0m');
+  console.log('  dsrptv menu          # Interactive setup');
+  console.log('  dsrptv graph         # LangGraph multi-agent');
+  console.log('  dsrptv launch        # Quick Aider start\n');
+  console.log('\x1b[90mDefault (no args): Runs interactive menu\x1b[0m\n');
+}
+
+// Main
+const args = process.argv.slice(2);
+const command = args[0] || 'menu';
+
+if (command === 'help' || command === '--help' || command === '-h') {
+  showHelp();
+  process.exit(0);
+}
+
+let scriptPath;
+let scriptArgs = [];
+
+switch (command) {
+  case 'menu':
+    scriptPath = path.join(SCRIPT_DIR, 'menu.js');
+    if (!fs.existsSync(scriptPath)) {
+      console.error('\x1b[31m[ERROR]\x1b[0m menu.js not found at', scriptPath);
+      process.exit(1);
+    }
+    break;
+
+  case 'graph':
+    scriptPath = path.join(SCRIPT_DIR, 'graph.py');
+    if (!fs.existsSync(scriptPath)) {
+      console.error('\x1b[31m[ERROR]\x1b[0m graph.py not found at', scriptPath);
+      process.exit(1);
+    }
+    // Use python instead of node
+    const proc = spawn('python', [scriptPath], { stdio: 'inherit', cwd: process.cwd() });
+    proc.on('exit', code => process.exit(code || 0));
+    return;
+
+  case 'launch':
+    scriptPath = path.join(SCRIPT_DIR, 'launch.sh');
+    if (!fs.existsSync(scriptPath)) {
+      console.error('\x1b[31m[ERROR]\x1b[0m launch.sh not found at', scriptPath);
+      process.exit(1);
+    }
+    const launchProc = spawn('bash', [scriptPath], { stdio: 'inherit', cwd: process.cwd() });
+    launchProc.on('exit', code => process.exit(code || 0));
+    return;
+
+  default:
+    console.error(`\x1b[31m[ERROR]\x1b[0m Unknown command: ${command}`);
+    console.log('Run \x1b[36mdsrptv help\x1b[0m for usage.\n');
+    process.exit(1);
+}
+
+// Run menu.js (default)
+const menuProc = spawn('node', [scriptPath], { stdio: 'inherit', cwd: process.cwd() });
+menuProc.on('exit', code => process.exit(code || 0));
