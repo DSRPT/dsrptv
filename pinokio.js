@@ -85,7 +85,7 @@ module.exports = {
           "echo ' Ollama : '\"$OLLAMA_API_BASE\"",
           "echo '================================================================'",
           "echo ''",
-          "aider --model \"$DSRPTV_MODEL\" --editor-model \"$DSRPTV_EDITOR_MODEL\" --architect --auto-accept-architect --yes --stream --map --message-history .dsrptv-memory.json {{args.prompt ? '--message ' + JSON.stringify(args.prompt) : ''}}"
+          "aider --model \"$DSRPTV_MODEL\" --editor-model \"$DSRPTV_EDITOR_MODEL\" --architect --auto-accept-architect --yes --stream --message-history .dsrptv-memory.json {{args.prompt ? '--message ' + JSON.stringify(args.prompt) :
         ].join("\n"),
         path: "{{args.cwd}}",
         input: true,
@@ -116,7 +116,7 @@ module.exports = {
           "echo \" Ollama : $OLLAMA_API_BASE\"",
           "echo '================================================================'",
           "echo ''",
-          "aider --model \"$DSRPTV_MODEL\" --editor-model \"$DSRPTV_EDITOR_MODEL\" --architect --auto-accept-architect --yes --stream --map --message-history .dsrptv-memory.json {{args.prompt ? '\"--message\" \"' + args.prompt + '\"' : ''}}"
+          "aider --model \"$DSRPTV_MODEL\" --editor-model \"$DSRPTV_EDITOR_MODEL\" --architect --auto-accept-architect --yes --stream --message-history .dsrptv-memory.json {{args.prompt ? '\"--message\" \"' + args.prompt + '\"' : ''}}"
         ].join("\n"),
         path: "{{args.cwd}}",
         input: true,
